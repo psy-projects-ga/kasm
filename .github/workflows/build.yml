@@ -1,0 +1,123 @@
+name: Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        default: "ubuntu-latest"
+        description: "runner"
+        type: choice
+        options:
+          - self-hosted
+          - ubuntu-latest
+          - windows-latest
+          - k8s
+        required: true
+
+jobs:
+  build:
+    runs-on: ${{inputs.runner || 'ubuntu-latest'}}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Check files
+        run: |
+          printf "\n\n"
+
+          printf "\e[93m%s\e[0m\n" \
+            "RUNNER_WORKSPACE:     \"${RUNNER_WORKSPACE}\"" \
+            "GITHUB_WORKSPACE:     \"${GITHUB_WORKSPACE}\"" \
+            "GITHUB_ACTION_PATH:   \"${GITHUB_ACTION_PATH}\"" \
+            "---                   ---" \
+            "gh_token:             \"${GITHUB_TOKEN::8}****************\"" \
+            "---                   ---"
+
+          printf "\n\n"
+
+          pwd
+          tree -ahI ".git" --dirsfirst --du
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        shell: bash
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Kclient Docker image
+        run: |
+          docker build \
+            --progress plain \
+            --tag "kclient" \
+            --file "Kclient.dockerfile" \
+            .
+        shell: bash
+
+      - name: Build KasmVNC Docker image
+        run: |
+          docker build \
+            --progress plain \
+            --tag "kamsvnc" \
+            --file "KasmVNC.dockerfile" \
+            .
+        shell: bash
+
+      - name: Extract /kclient directory from kclient image
+        run: |
+          docker create \
+            --name "tmp_container" \
+            "kclient"
+
+          docker cp \
+            "tmp_container:/kclient" \
+            "./kclient"
+
+          docker rm tmp_container
+        shell: bash
+
+      - name: Create Kclient tar archive
+        run: tar -zcvf "kclient.tar.gz" "./kclient"
+        shell: bash
+
+      - name: Extract /build-out directory from kasmvnc image
+        run: |
+          docker create \
+            --name "tmp_container" \
+            "kasmvnc"
+
+          docker cp \
+            "tmp_container:/build-out" \
+            "./build-out"
+
+          docker rm tmp_container
+        shell: bash
+
+      - name: Create KasmVNC tar archive
+        run: tar -zcvf "kasmvnc.tar.gz" "./build-out"
+        shell: bash
+
+      - name: Create Release.md file
+        run: |
+          printf "## %s\n" "Kasm NoVNC" >"./release.md"
+          printf "### %s\n" "Files:" >>"./release.md"
+          printf "  - %s\n" "kclient.tar.gz" >>"./release.md"
+          printf "  - %s\n" "kasmvnc.tar.gz" >>"./release.md"
+        shell: bash
+
+      - name: Delete current tag and release
+        uses: dev-drprasad/delete-tag-and-release@v0.2.1
+        with:
+          tag_name: v0.0.1
+          delete_release: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts to Release
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: v0.0.1
+          artifacts: "*.tar.gz"
+          bodyFile: "release.md"
+          generateReleaseNotes: true

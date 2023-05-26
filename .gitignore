@@ -1,0 +1,12 @@
+*
+!*/
+
+!.gitignore
+!.env.template
+!VERSION
+!CHANGELOG.md
+!README.md
+
+!.github/**
+
+!*.dockerfile
