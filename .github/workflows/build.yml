@@ -54,15 +54,6 @@ jobs:
             .
         shell: bash
 
-      - name: Build KasmVNC Docker image
-        run: |
-          docker build \
-            --progress plain \
-            --tag "kamsvnc" \
-            --file "KasmVNC.dockerfile" \
-            .
-        shell: bash
-
       - name: Extract /kclient directory from kclient image
         run: |
           docker create \
@@ -78,6 +69,15 @@ jobs:
 
       - name: Create Kclient tar archive
         run: tar -zcvf "kclient.tar.gz" "./kclient"
+        shell: bash
+
+      - name: Build KasmVNC Docker image
+        run: |
+          docker build \
+            --progress plain \
+            --tag "kasmvnc" \
+            --file "KasmVNC.dockerfile" \
+            .
         shell: bash
 
       - name: Extract /build-out directory from kasmvnc image
