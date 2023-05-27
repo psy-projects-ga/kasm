@@ -45,39 +45,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Build Kclient Docker image
-        run: |
-          docker build \
-            --progress plain \
-            --tag "kclient" \
-            --file "Kclient.dockerfile" \
-            .
-        shell: bash
-
-      - name: Extract /kclient directory from kclient image
-        run: |
-          docker create \
-            --name "tmp_container" \
-            "kclient"
-
-          docker cp \
-            "tmp_container:/kclient" \
-            "./kclient"
-
-          docker rm tmp_container
-        shell: bash
-
-      - name: Create Kclient tar archive
-        run: tar -zcvf "kclient.tar.gz" "./kclient"
-        shell: bash
-
       - name: Build KasmVNC Docker image
         run: |
           docker build \
             --progress plain \
             --tag "kasmvnc" \
-            --file "KasmVNC.dockerfile" \
-            .
+            - <"KasmVNC.dockerfile"
         shell: bash
 
       - name: Extract /build-out directory from kasmvnc image
@@ -97,12 +70,39 @@ jobs:
         run: tar -zcvf "kasmvnc.tar.gz" "./build-out"
         shell: bash
 
+      - name: Build Kclient Docker image
+        run: |
+          docker build \
+            --progress plain \
+            --tag "kclient" \
+            - <"Kclient.dockerfile"
+        shell: bash
+
+      - name: Extract /kclient directory from kclient image
+        run: |
+          docker create \
+            --name "tmp_container" \
+            "kclient"
+
+          docker cp \
+            "tmp_container:/kclient" \
+            "./kclient"
+
+          docker rm tmp_container
+        shell: bash
+
+      - name: Create Kclient tar archive
+        run: tar -zcvf "kclient.tar.gz" "./kclient"
+        shell: bash
+
       - name: Create Release.md file
         run: |
-          printf "## %s\n" "Kasm NoVNC" >"./release.md"
-          printf "### %s\n" "Files:" >>"./release.md"
-          printf "  - %s\n" "kclient.tar.gz" >>"./release.md"
-          printf "  - %s\n" "kasmvnc.tar.gz" >>"./release.md"
+          cat <<EOF >"release.md"
+          ## Kasm NoVNC
+          ### Files:
+            - kclient.tar.gz
+            - kasmvnc.tar.gz
+          EOF
         shell: bash
 
       - name: Delete current tag and release
