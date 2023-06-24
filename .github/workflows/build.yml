@@ -108,7 +108,7 @@ jobs:
       - name: Delete current tag and release
         uses: dev-drprasad/delete-tag-and-release@v0.2.1
         with:
-          tag_name: v0.0.1
+          tag_name: v0.0.2
           delete_release: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -117,7 +117,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag: v0.0.1
+          tag: v0.0.2
           artifacts: "*.tar.gz"
           bodyFile: "release.md"
           generateReleaseNotes: true
